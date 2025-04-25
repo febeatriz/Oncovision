@@ -65,7 +65,7 @@ const Index = () => {
       <main className="flex-1 container py-8">
         <div className="grid gap-8">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full max-w-md grid-cols-3 mb-8">
+            <TabsList className="grid w-full max-w-md grid-cols-3 mb-8 bg-pink-100">
               <TabsTrigger value="upload">Upload</TabsTrigger>
               <TabsTrigger value="analyze" disabled={!data}>Análise</TabsTrigger>
               <TabsTrigger value="results" disabled={!analysis}>Resultados</TabsTrigger>

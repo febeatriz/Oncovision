@@ -16,7 +16,7 @@ const Header = () => {
   return (
     <header className="border-b">
       <div className="container flex h-16 items-center justify-between py-4">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center -ml-20 gap-2">
           <div>
             <img src="/logo.png" alt="OncoVision" className="h-14 w-14" />
           </div>
