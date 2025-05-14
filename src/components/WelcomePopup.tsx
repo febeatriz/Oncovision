@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useAuth } from "@/lib/useAuth";
 
 interface WelcomePopupProps {
   onClose: () => void;
@@ -7,6 +8,7 @@ interface WelcomePopupProps {
 
 const WelcomePopup = ({ onClose }: WelcomePopupProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     // Show popup when component mounts
@@ -30,7 +32,8 @@ const WelcomePopup = ({ onClose }: WelcomePopupProps) => {
           <div className="flex flex-col gap-4">
             <div className="relative border-2 border-gray-300 bg-white p-4 rounded-lg shadow-md">
               <div className="relative z-20">
-                <h2 className="text-2xl font-bold mb-2">Bem vindo ao OncoVision</h2>
+                <h2 className="text-2xl font-bold mb-2">Olá, {user?.name}!</h2>
+                <h3 className="text-xl font-semibold mb-2">Bem vindo ao OncoVision</h3>
                 <p className="text-muted-foreground">
                   Anexe seu arquivo e veja dados de forma mais simplificada
                 </p>
@@ -55,4 +58,4 @@ const WelcomePopup = ({ onClose }: WelcomePopupProps) => {
   );
 };
 
-export default WelcomePopup; 
+export default WelcomePopup;

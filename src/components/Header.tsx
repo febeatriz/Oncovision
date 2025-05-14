@@ -1,9 +1,13 @@
 import { Button } from "@/components/ui/button";
 import WelcomePopup from "@/components/WelcomePopup";
+import { useAuth } from "@/lib/useAuth";
+import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
 const Header = () => {
   const [showPopup, setShowPopup] = useState(false);
+  const { logout, user } = useAuth();
+  const navigate = useNavigate();
 
   const handleAboutClick = () => {
     setShowPopup(true);
@@ -11,6 +15,11 @@ const Header = () => {
 
   const handlePopupClose = () => {
     setShowPopup(false);
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
   };
 
   return (
@@ -22,9 +31,23 @@ const Header = () => {
           </div>
           <h1 className="text-3xl font-bold tracking-tight">OncoVision</h1>
         </div>
-        <button className="flex items-center gap-4" onClick={handleAboutClick}>
-          About
-        </button>
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-muted-foreground">
+            Olá, {user?.name}
+          </span>
+          <Button
+            variant="ghost"
+            onClick={handleAboutClick}
+          >
+            Sobre
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleLogout}
+          >
+            Sair
+          </Button>
+        </div>
         {showPopup && <WelcomePopup onClose={handlePopupClose} />}
       </div>
     </header>
