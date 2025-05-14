@@ -27,7 +27,7 @@ const WelcomePopup = ({ onClose }: WelcomePopupProps) => {
           <img
             src="/oncovision-mascot.png"
             alt="OncoVision Mascot"
-            className="w-80 h-80 mr-4"
+            className="w-[350px] h-[350px] mr-4"
           />
           <div className="flex flex-col gap-4">
             <div className="relative border-2 border-gray-300 bg-white p-4 rounded-lg shadow-md">
@@ -42,7 +42,7 @@ const WelcomePopup = ({ onClose }: WelcomePopupProps) => {
             </div>
             <div className="border-2 border-gray-300 relative bg-white p-4 text-center rounded-lg shadow-md">
               <div className="relative z-20">
-                <h2 className="text-md mb-2">Se seu arquivo não estiver no formato CSV. clique abaixo para converter</h2>
+                <h2 className="text-md mb-2">Se seu arquivo não estiver no formato CSV ou XLS. clique abaixo para converter</h2>
                 <button className="bg-pink-400 hover:bg-pink-600 border-none text-black px-4 py-2 text-sm mt-4 rounded-md"
                   onClick={() => {
                     window.open("https://convertio.co/pt/conversor-csv/", "_blank");

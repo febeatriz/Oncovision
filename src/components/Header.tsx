@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import WelcomePopup from "@/components/WelcomePopup";
+import AboutDialog from "@/components/AboutDialog";
 import { useAuth } from "@/lib/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -48,7 +48,7 @@ const Header = () => {
             Sair
           </Button>
         </div>
-        {showPopup && <WelcomePopup onClose={handlePopupClose} />}
+        <AboutDialog open={showPopup} onClose={handlePopupClose} />
       </div>
     </header>
   );

@@ -6,8 +6,8 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import { useAuth } from "./lib/useAuth";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import { LoginForm } from "./components/auth/LoginForm";
-import { RegisterForm } from "./components/auth/RegisterForm";
+import { LoginForm } from "./components/login/cadastro/LoginForm";
+import { RegisterForm } from "./components/login/cadastro/RegisterForm";
 import { useState } from "react";
 
 const queryClient = new QueryClient();
