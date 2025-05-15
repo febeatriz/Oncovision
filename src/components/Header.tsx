@@ -24,26 +24,30 @@ const Header = () => {
 
   return (
     <header className="border-b">
-      <div className="container flex h-16 items-center justify-between py-4">
-        <div className="flex items-center -ml-20 gap-2">
+      <div className="container flex h-16 items-center justify-between py-4 px-2 sm:px-4">
+        <div className="flex items-center gap-2">
           <div>
-            <img src="/logo.png" alt="OncoVision" className="h-14 w-14" />
+            <img src="/logo.png" alt="OncoVision" className="h-10 w-10 sm:h-14 sm:w-14" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">OncoVision</h1>
+          <h1 className="text-xl sm:text-3xl font-bold tracking-tight">OncoVision</h1>
         </div>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <span className="hidden sm:inline text-sm text-muted-foreground">
             Olá, {user?.name}
           </span>
           <Button
             variant="ghost"
             onClick={handleAboutClick}
+            className="px-2 sm:px-4"
+            size="sm"
           >
             Sobre
           </Button>
           <Button
             variant="outline"
             onClick={handleLogout}
+            className="px-2 sm:px-4"
+            size="sm"
           >
             Sair
           </Button>

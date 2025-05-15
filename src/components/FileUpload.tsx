@@ -108,16 +108,16 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
 
     reader.readAsText(file);
   };
-
   return (
-    <div className="relative w-full min-h-[500px]">
-      <Card className="w-full max-w-md mx-auto">
+    <div className="relative w-full min-h-[500px] flex flex-col items-center">
+      <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-xl">Arquivo CSV</CardTitle>
         </CardHeader>
         <CardContent>
           <div
-            className={`border-2 border-dashed rounded-lg p-8 text-center ${dragging ? "border-primary bg-primary/5" : "border-muted-foreground/30"
+            className={`border-2 border-dashed rounded-lg p-8 text-center 
+              ${dragging ? "border-primary bg-primary/5" : "border-muted-foreground/30"
               } hover:border-primary/50 transition-colors cursor-pointer`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -161,17 +161,15 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
         </CardContent>
         <CardFooter className="flex justify-between text-xs text-muted-foreground">
           <p>Certifique-se de que seu arquivo CSV contém as características necessárias para a análise</p>
-        </CardFooter>
-      </Card>
-
-      {/* Mascote com balão de fala - Com animação de visibilidade */}      
+        </CardFooter>      </Card>
+      {/* Mascote com balão de fala - Com animação de visibilidade */}
       <div
-        className={`hidden md:block absolute right-0 top-1/2 -translate-y-1/2 z-50 transition-all duration-300 ${showMascot ? 'translate-x-0 opacity-100' : 'translate-x-20 opacity-0 pointer-events-none'
+        className={`block relative md:absolute md:right-0 md:top-1/2 md:-translate-y-1/2 mt-8 md:mt-0 z-50 transition-all duration-300 max-w-[300px] w-full 
+          ${showMascot ? 'translate-x-0 opacity-100' : 'translate-x-20 opacity-0 pointer-events-none'
           }`}
-        style={{ width: '300px' }}
       >
         {/* Balão de fala */}
-        <div className="relative bg-white border-2 border-gray-300 rounded-lg p-4 shadow-md w-64 mb-4 mx-auto">
+        <div className="relative bg-white border-2 border-gray-300 rounded-lg p-4 shadow-md w-full max-w-[256px] mb-4 mx-auto">
           <div className="text-center">
             <p className="text-sm mb-3">Se seu arquivo não está no formato necessário, converta aqui</p>
             <button
@@ -190,7 +188,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
           <img
             src="/oncovision-mascot.png"
             alt="OncoVision Mascot"
-            className="w-32 ml-16"
+            className="w-24 md:w-32 ml-16"
           />
         </div>
       </div>
