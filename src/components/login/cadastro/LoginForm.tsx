@@ -91,7 +91,7 @@ export function LoginForm({ onSwitchToRegister }: LoginFormProps) {
                             </div>
                         </CardContent>
                         <CardFooter className="flex flex-col gap-4">
-                            <Button type="submit" className="w-full" disabled={isLoading}>
+                            <Button type="submit" className="w-full hover:bg-pink-700 bg-pink-600" disabled={isLoading}>
                                 {isLoading ? "Entrando..." : "Entrar"}
                             </Button>
                             <Button

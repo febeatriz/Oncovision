@@ -176,13 +176,13 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
             <p className="text-sm mb-3">Se seu arquivo não está no formato necessário, converta aqui</p>
             <button
               onClick={() => window.open("https://convertio.co/pt/conversor-csv/", "_blank")}
-              className="bg-pink-400 hover:bg-pink-600 text-black px-4 py-2 text-sm rounded-md transition-colors"
+              className="bg-pink-600 hover:bg-pink-700 text-orange-50 px-4 py-2 text-sm rounded-md border-none"
             >
               Converter
             </button>
           </div>
           {/* Triângulo do balão */}
-          <div className="absolute -bottom-3 left-[70%] -translate-x-1/2 w-4 h-4 bg-white border-2 border-gray-300 border-t-0 border-l-0 transform rotate-45"></div>
+          <div className="absolute -bottom-2 left-[70%] -translate-x-1/2 w-4 h-4 bg-white border-2 border-gray-300 border-t-0 border-l-0 transform rotate-45"></div>
         </div>
 
         {/* Mascote */}
@@ -190,7 +190,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
           <img
             src="/oncovision-mascot.png"
             alt="OncoVision Mascot"
-            className="w-32"
+            className="w-32 ml-16"
           />
         </div>
       </div>

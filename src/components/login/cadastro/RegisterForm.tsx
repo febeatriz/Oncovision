@@ -130,7 +130,7 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
                             </div>
                         </CardContent>
                         <CardFooter className="flex flex-col gap-4">
-                            <Button type="submit" className="w-full" disabled={isLoading}>
+                            <Button type="submit" className="w-full bg-pink-600 hover:bg-pink-700" disabled={isLoading}>
                                 {isLoading ? "Cadastrando..." : "Cadastrar"}
                             </Button>
                             <Button
