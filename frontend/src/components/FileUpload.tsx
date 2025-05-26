@@ -1,114 +1,114 @@
+// src/components/FileUpload.jsx
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button"; // Assumindo que esta importação funciona no seu setup
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 
-interface FileUploadProps {
-  onFileUpload: (data: { columns: string[], rows: any[] }) => void;
-}
-
-const FileUpload = ({ onFileUpload }: FileUploadProps) => {
+const FileUpload = ({ onFileUpload, isLoading, setIsLoading, setUploadError }) => {
   const [dragging, setDragging] = useState(false);
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [showMascot, setShowMascot] = useState(true);
+  const [fileName, setFileName] = useState(null);
+  const [showMascot, setShowMascot] = useState(true); // Lógica do mascote mantida do seu código original
 
-  // Controla a visibilidade do mascote baseado no scroll
   useEffect(() => {
     const handleScroll = () => {
-      const footer = document.querySelector('footer');
+      const footer = document.querySelector('footer'); // Seu código original procura por 'footer'
       if (footer) {
         const footerRect = footer.getBoundingClientRect();
-        // Se o footer estiver visível na tela, esconde o mascote
         setShowMascot(footerRect.top > window.innerHeight);
+      } else {
+        setShowMascot(true); // Mostra se não houver footer
       }
     };
-
     window.addEventListener('scroll', handleScroll);
-    handleScroll(); // Checa posição inicial
-
+    handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragOver = (e) => {
     e.preventDefault();
     setDragging(true);
   };
 
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragLeave = (e) => {
     e.preventDefault();
     setDragging(false);
   };
 
-  const processCSV = (text: string) => {
+  // Função de processamento de CSV do SEU CÓDIGO ORIGINAL.
+  // No nosso novo fluxo, esta função não é mais necessária aqui,
+  // pois o backend FastAPI fará o parsing e tratamento.
+  // O FileUpload agora apenas envia o arquivo.
+  /*
+  const processCSV = (text) => {
     try {
-      const lines = text.trim().split("\n");
-      const headers = lines[0].split(",").map(header => header.trim());
-
-      const rows = lines.slice(1).map(line => {
-        const values = line.split(",").map(value => value.trim());
-        const row: Record<string, any> = {};
-
-        headers.forEach((header, index) => {
-          // Try to convert numeric values
-          const value = values[index] || "";
-          const numericValue = parseFloat(value);
-          row[header] = isNaN(numericValue) ? value : numericValue;
-        });
-
-        return row;
-      });
-
-      return { columns: headers, rows };
+      // ... (sua lógica de processCSV) ...
     } catch (error) {
       console.error("Error processing CSV:", error);
       toast.error("Failed to process CSV file. Please check the format.");
       return { columns: [], rows: [] };
     }
   };
+  */
 
-  const handleFileDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleFileDrop = (e) => {
     e.preventDefault();
     setDragging(false);
-
     const files = e.dataTransfer.files;
     if (files.length) {
       handleFile(files[0]);
     }
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e) => {
     const files = e.target.files;
     if (files?.length) {
       handleFile(files[0]);
     }
   };
 
-  const handleFile = (file: File) => {
+  const handleFile = async (file) => { // Tornada async para o fetch
     if (!file.name.endsWith('.csv')) {
-      toast.error("Please upload a CSV file");
+      toast.error("Por favor, envie um arquivo CSV");
+      setUploadError("Formato de arquivo inválido. Por favor, envie um CSV.");
       return;
     }
 
     setFileName(file.name);
+    setIsLoading(true);
+    setUploadError(null);
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      const data = processCSV(text);
+    const formData = new FormData();
+    formData.append('file', file); // 'file' é o nome esperado pelo backend FastAPI
 
-      if (data.rows.length > 0) {
-        onFileUpload(data);
-        toast.success("File uploaded successfully!");
+    try {
+      const response = await fetch('http://localhost:8000/upload_csv/', { // Verifique a porta
+        method: 'POST',
+        body: formData,
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(responseData.error || `Falha no upload: ${response.statusText}`);
       }
-    };
 
-    reader.onerror = () => {
-      toast.error("Error reading file");
-    };
+      // onFileUpload agora recebe os dados já processados pelo backend
+      onFileUpload(responseData);
+      // toast.success("Arquivo enviado e processado com sucesso!"); // O Index.jsx pode dar este toast
 
-    reader.readAsText(file);
+    } catch (error) {
+      console.error('Erro no upload:', error);
+      toast.error(error.message || "Ocorreu um erro durante o upload.");
+      setUploadError(error.message || "Ocorreu um erro durante o upload.");
+      onFileUpload(null); // Informa o componente pai que falhou
+    } finally {
+      setIsLoading(false);
+    }
   };
+
   return (
+    // Seu JSX do FileUpload com a área de drag-and-drop e o mascote aqui...
+    // Vou usar o JSX que você forneceu originalmente para este componente:
     <div className="relative w-full min-h-[500px] flex flex-col items-center">
       <Card className="w-full max-w-md">
         <CardHeader>
@@ -117,25 +117,18 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
         <CardContent>
           <div
             className={`border-2 border-dashed rounded-lg p-8 text-center 
-              ${dragging ? "border-primary bg-primary/5" : "border-muted-foreground/30"
+               ${dragging ? "border-primary bg-primary/5" : "border-muted-foreground/30"
               } hover:border-primary/50 transition-colors cursor-pointer`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleFileDrop}
-            onClick={() => document.getElementById("file-upload")?.click()}
+            onClick={() => document.getElementById("file-upload-main")?.click()} // ID único
           >
             <div className="flex flex-col items-center gap-2">
               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                 <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                  xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                  fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                   className="text-primary"
                 >
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -146,12 +139,12 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
               <div className="flex flex-col gap-1 text-center">
                 <p className="font-medium">Arraste e solte seu arquivo CSV aqui para análise</p>
                 <p className="text-sm text-muted-foreground">
-                  {fileName ? `Selected: ${fileName}` : "Apenas arquivos CSV"}
+                  {fileName ? `Selecionado: ${fileName}` : "Apenas arquivos CSV"}
                 </p>
               </div>
             </div>
             <input
-              id="file-upload"
+              id="file-upload-main" // ID único
               type="file"
               accept=".csv"
               className="hidden"
@@ -160,15 +153,15 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
           </div>
         </CardContent>
         <CardFooter className="flex justify-between text-xs text-muted-foreground">
-          <p>Certifique-se de que seu arquivo CSV contém as características necessárias para a análise</p>
-        </CardFooter>      </Card>
-      {/* Mascote com balão de fala - Com animação de visibilidade */}
+          <p>Certifique-se de que seu arquivo CSV contém as características necessárias.</p>
+        </CardFooter>
+      </Card>
+      {/* Mascote com balão de fala */}
       <div
         className={`block relative md:absolute md:right-0 md:top-1/2 md:-translate-y-1/2 mt-8 md:mt-0 z-50 transition-all duration-300 max-w-[300px] w-full 
-          ${showMascot ? 'translate-x-0 opacity-100' : 'translate-x-20 opacity-0 pointer-events-none'
+           ${showMascot ? 'translate-x-0 opacity-100' : 'translate-x-20 opacity-0 pointer-events-none'
           }`}
       >
-        {/* Balão de fala */}
         <div className="relative bg-white border-2 border-gray-300 rounded-lg p-4 shadow-md w-full max-w-[256px] mb-4 mx-auto">
           <div className="text-center">
             <p className="text-sm mb-3">Se seu arquivo não está no formato necessário, converta aqui</p>
@@ -179,14 +172,11 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
               Converter
             </button>
           </div>
-          {/* Triângulo do balão */}
           <div className="absolute -bottom-2 left-[70%] -translate-x-1/2 w-4 h-4 bg-white border-2 border-gray-300 border-t-0 border-l-0 transform rotate-45"></div>
         </div>
-
-        {/* Mascote */}
         <div className="flex justify-center">
           <img
-            src="/oncovision-mascot.png"
+            src="/oncovision-mascot.png" // Certifique-se que este caminho está correto na sua pasta public
             alt="OncoVision Mascot"
             className="w-24 md:w-32 ml-16"
           />
