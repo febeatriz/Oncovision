@@ -304,7 +304,6 @@ async def upload_csv(file: UploadFile = File(...)):
     df_tratada = trataBase(df_PI.copy())
 
     #separando em um df apenas com os dados de pessoas que morreram por cancer
-    # Garantir que os valores estejam padronizados
     df_obito_cancer = df_tratada[df_tratada["ultinfo"] == "OBITO POR CANCER"]
 
 
@@ -316,13 +315,21 @@ async def upload_csv(file: UploadFile = File(...)):
     df_faixa_morte = df_obito_cancer["faixaetar"].value_counts().reset_index()
     df_faixa_morte.columns = ["Idade", "quantidade"]
 
-    #grafico tratamentos_resultados
+    # gráfico tratamento_resultado
+    df_tratamento_raw = df_tratada[df_tratada["ultinfo"].isin([
+        "OBITO POR CANCER", "VIVO, COM CANCER", "VIVO, SOE"
+    ])]
+    df_tratamento = df_tratamento_raw.groupby(["tratamento", "ultinfo"]).size().unstack(fill_value=0)
+    df_tratamento["total"] = df_tratamento.sum(axis=1)
+    df_tratamento = df_tratamento.sort_values(by="total", ascending=False).drop(columns="total")
+    df_tratamento_resultado = df_tratamento.reset_index()
 
     
     return {
         "base_tratada": df_tratada.to_dict(orient="records"),
         "grafico_tipo_mortalidade": df_obito_por_tipo.to_dict(orient="records"),
-        "grafico_idade_mortalidade":df_faixa_morte.to_dict(orient="records")
+        "grafico_idade_mortalidade":df_faixa_morte.to_dict(orient="records"),
+        "grafico_tratamento_resultado": df_tratamento_resultado.to_dict(orient="records")
     }
 
 
