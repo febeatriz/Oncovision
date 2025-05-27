@@ -25,13 +25,23 @@ async def upload_csv(file: UploadFile = File(...)):
         #removendo colunas que não vão ser usadas
         colunas_a_remover = ["ibge", "t", "n", "m", "pt", "pn", "pm", "s", "g", "meta01", "meta02", "meta03", "outracla", "cici", "cicigrup", "cicisubgru", "rec01", "rec02", "rec03", "rec04"]
         df_PI = df_PI.drop(columns=colunas_a_remover)
+
+        df_PI = df_PI.apply(lambda col: col.str.strip() if col.dtype == 'object' else col)
+
         #Criando um dicionario de dicionarios para caber em um for e fazer os replaces necessarios
         simNao = {
             1: "SIM",
             0: "NÃO"
         }
+        
     
         dicionarioCompleto = {
+            "ultinfo": {
+                1: "VIVO, COM CANCER", 
+                2: "VIVO, SOE", 
+                3: "OBITO POR CANCER", 
+                4: "OBITO POR OUTRAS CAUSAS, SOE"
+            },
             "cateatend": {
                 1: "CONVENIO",
                 2: "SUS",
@@ -223,7 +233,6 @@ async def upload_csv(file: UploadFile = File(...)):
             "tmoapos": simNao,
             "imunoapos": simNao,
             "outroapos": simNao,
-            "ultinfo": simNao,
             "laterali": {
                 1: "DIREITA", 
                 2: "ESQUERDA", 
@@ -274,6 +283,7 @@ async def upload_csv(file: UploadFile = File(...)):
             }
         }
 
+
         for coluna, mapeamento in dicionarioCompleto.items():
             if coluna in df_PI.columns:
                 df_PI[coluna] = df_PI[coluna].replace(mapeamento)
@@ -292,15 +302,27 @@ async def upload_csv(file: UploadFile = File(...)):
         return df_PI
     
     df_tratada = trataBase(df_PI.copy())
+
+    #separando em um df apenas com os dados de pessoas que morreram por cancer
+    # Garantir que os valores estejam padronizados
+    df_obito_cancer = df_tratada[df_tratada["ultinfo"] == "OBITO POR CANCER"]
+
+
     #grafico tipo_mortalidade
-    df_obito_cancer = df_tratada[df_tratada['ultinfo'] == "OBITO POR CANCER"]
     df_obito_por_tipo = df_obito_cancer['descido'].value_counts().reset_index()
     df_obito_por_tipo.columns = ['tipo_cancer', 'quantidade']
+
+    #grafico_faixa_morte
+    df_faixa_morte = df_obito_cancer["faixaetar"].value_counts().reset_index()
+    df_faixa_morte.columns = ["Idade", "quantidade"]
+
+    #grafico tratamentos_resultados
 
     
     return {
         "base_tratada": df_tratada.to_dict(orient="records"),
-        "grafico_tipo_mortalidade": df_obito_por_tipo.to_dict(orient="records")
+        "grafico_tipo_mortalidade": df_obito_por_tipo.to_dict(orient="records"),
+        "grafico_idade_mortalidade":df_faixa_morte.to_dict(orient="records")
     }
 
 
