@@ -324,13 +324,23 @@ async def upload_csv(file: UploadFile = File(...)):
     df_tratamento = df_tratamento.sort_values(by="total", ascending=False).drop(columns="total")
     df_tratamento_resultado = df_tratamento.reset_index()
 
+    #grafico tempo paciente sobreviveu apos diagnostico
+    # gráfico sobrevida_diagnostico
+    df_sobrevida = df_obito_cancer.copy()
+    df_sobrevida = df_sobrevida[df_sobrevida["dtdiag"].notna() & df_sobrevida["dtultinfo"].notna()]
+    df_sobrevida["dias_sobrevida"] = (df_sobrevida["dtultinfo"] - df_sobrevida["dtdiag"]).dt.days
+    df_sobrevida = df_sobrevida[df_sobrevida["dias_sobrevida"] >= 0]
+    df_sobrevida_json = df_sobrevida[["dtdiag", "dtultinfo", "dias_sobrevida"]]
+
+
     
     return {
         "base_tratada": df_tratada.to_dict(orient="records"),
         "grafico_tipo_mortalidade": df_obito_por_tipo.to_dict(orient="records"),
         "grafico_idade_mortalidade":df_faixa_morte.to_dict(orient="records"),
-        "grafico_tratamento_resultado": df_tratamento_resultado.to_dict(orient="records")
-    }
+        "grafico_tratamento_resultado": df_tratamento_resultado.to_dict(orient="records"),
+        "grafico_sobrevida_diagnostico": df_sobrevida_json.to_dict(orient="records")
+   }
 
 
 
