@@ -42,7 +42,7 @@ const DataTable = ({ data }) => { // data = { columns: [], rows: [] }
       <CardHeader>
         <CardTitle className="text-xl">Visualização dos Dados Tratados</CardTitle>
         <CardDescription>
-          Mostrando {displayedRows.length} de {filteredRows.length} entradas (Total original: {data.rows.length})
+          Vendo {displayedRows.length} de {filteredRows.length} entradas (Total original: {data.rows.length})
         </CardDescription>
       </CardHeader>
       <CardContent>

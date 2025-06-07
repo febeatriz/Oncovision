@@ -1,100 +1,138 @@
-// src/pages/Index.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button"; // Importe se for usar o Button de shadcn/ui
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"; // Se for usar Cards para resumo
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Importe Tabs
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2 } from "lucide-react";
 
+import Header from "@/components/Header";
+import WelcomePopup from "@/components/WelcomePopup";
 import FileUploader from "@/components/FileUpload";
-import TopographyChart from "@/components/TopographyChart";
-import PatientSexChart from "@/components/PatientSexChart";
-import DataTable from "@/components/DataTable"; // Assumindo que você quer usar o DataTable
+import DataTable from "@/components/DataTable";
 
-// Se você tiver um Header para esta página, descomente
-// import Header from "@/components/Header";
+// --- NOVOS COMPONENTES DE GRÁFICO (crie estes arquivos) ---
+import MortalityByTypeChart from "@/components/charts/MortalityByTypeChart";
+import MortalityByAgeChart from "@/components/charts/MortalityByAgeChart";
+import TreatmentOutcomeChart from "@/components/charts/TreatmentOutcomeChart";
+import SurvivalDaysChart from "@/components/charts/SurvivalDaysChart";
+
+// Tipagem para uma linha da tabela
+interface TableRow {
+  id?: number | string;
+  [key: string]: any;
+}
+
+// Tipagem para os dados da tabela
+interface DataTableData {
+  columns: string[];
+  rows: TableRow[];
+}
+
+// --- NOVO: Tipagem para a resposta completa da API ---
+interface ApiResponse {
+  base_tratada: TableRow[];
+  grafico_tipo_mortalidade: any[];
+  grafico_idade_mortalidade: any[];
+  grafico_tratamento_resultado: any[];
+  grafico_sobrevida_diagnostico: any[];
+}
 
 const Index = () => {
-  // Estado para os dados brutos do CSV (apenas para passar ao DataTable, se necessário)
-  // No nosso caso, o backend já trata, então 'processedDataFromBackend' é mais preciso
-  const [processedDataFromBackend, setProcessedDataFromBackend] = useState(null);
+  // --- ESTADOS ALTERADOS ---
+  const [dataTableData, setDataTableData] = useState<DataTableData>({ columns: [], rows: [] });
+  const [mortalityByTypeData, setMortalityByTypeData] = useState<any[] | null>(null);
+  const [mortalityByAgeData, setMortalityByAgeData] = useState<any[] | null>(null);
+  const [treatmentOutcomeData, setTreatmentOutcomeData] = useState<any[] | null>(null);
+  const [survivalData, setSurvivalData] = useState<any[] | null>(null);
 
-  // Estado para controlar a visibilidade dos gráficos
-  const [showCharts, setShowCharts] = useState(false);
-
-  const [isLoading, setIsLoading] = useState(false); // Para o FileUploader
-  const [uploadError, setUploadError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("upload");
+  const [showWelcomePopup, setShowWelcomePopup] = useState(true);
 
-  // Chamado pelo FileUploader quando o backend retorna os dados tratados
-  const handleDataReceivedFromBackend = (jsonData) => {
-    if (jsonData && jsonData.length > 0) {
-      setProcessedDataFromBackend(jsonData);
+  // Efeito para o pop-up de boas-vindas (sem alterações)
+  useEffect(() => {
+    const welcomeShown = localStorage.getItem('welcomeDashboardShown');
+    if (welcomeShown) {
+      setShowWelcomePopup(false);
+    }
+  }, []);
+
+  const handleCloseWelcomePopup = () => {
+    setShowWelcomePopup(false);
+    localStorage.setItem('welcomeDashboardShown', 'true');
+  };
+
+  // --- LÓGICA ALTERADA PARA LIDAR COM A NOVA RESPOSTA DA API ---
+  const handleDataReceivedFromBackend = (apiResponse: ApiResponse | null) => {
+    setIsLoading(false);
+
+    if (apiResponse && apiResponse.base_tratada) {
+      const {
+        base_tratada,
+        grafico_tipo_mortalidade,
+        grafico_idade_mortalidade,
+        grafico_tratamento_resultado,
+        grafico_sobrevida_diagnostico
+      } = apiResponse;
+
+      // 1. Processa dados para a Tabela
+      if (base_tratada.length > 0) {
+        const columnNames = Object.keys(base_tratada[0]);
+        setDataTableData({ columns: columnNames, rows: base_tratada });
+      } else {
+        setDataTableData({ columns: [], rows: [] });
+      }
+
+      // 2. Armazena dados para os gráficos
+      setMortalityByTypeData(grafico_tipo_mortalidade);
+      setMortalityByAgeData(grafico_idade_mortalidade);
+      setTreatmentOutcomeData(grafico_tratamento_resultado);
+      setSurvivalData(grafico_sobrevida_diagnostico);
+
       setUploadError(null);
-      setShowCharts(false); // Reseta a exibição de gráficos ao carregar novos dados
-      setActiveTab("viewData"); // Muda para a aba de visualização/análise
-      toast.success("Arquivo processado pelo backend e dados recebidos!");
-    } else if (jsonData && jsonData.length === 0) {
-      setProcessedDataFromBackend(null);
-      setShowCharts(false);
-      toast.warn("Arquivo processado, mas sem dados retornados pelo backend.");
-    } else if (!jsonData && !uploadError) { // Caso o upload falhe
-      setProcessedDataFromBackend(null);
-      setShowCharts(false);
+      setActiveTab("viewData");
+      toast.success("Arquivo processado e dados recebidos com sucesso!");
+    } else {
+      // Reseta todos os estados em caso de erro ou resposta vazia
+      setDataTableData({ columns: [], rows: [] });
+      setMortalityByTypeData(null);
+      setMortalityByAgeData(null);
+      setTreatmentOutcomeData(null);
+      setSurvivalData(null);
+      if (uploadError) {
+        toast.error(uploadError || "Falha ao processar o arquivo.");
+      } else {
+        toast.warn("Arquivo processado, mas sem dados retornados.");
+      }
     }
   };
 
-  const handleVisualizeCharts = () => {
-    if (!processedDataFromBackend || processedDataFromBackend.length === 0) {
-      toast.error("Nenhum dado carregado para gerar gráficos.");
-      return;
-    }
-    setShowCharts(true);
-    setActiveTab("charts"); // Muda para a aba de gráficos
-    toast.info("Gerando visualizações gráficas...");
-  };
-
-  // Preparar dados para o DataTable (colunas e linhas)
-  const tableColumns = processedDataFromBackend && processedDataFromBackend.length > 0
-    ? Object.keys(processedDataFromBackend[0])
-    : [];
-
-  const dataForTable = {
-    columns: tableColumns,
-    rows: processedDataFromBackend || []
-  };
+  const hasData = dataTableData.rows.length > 0;
 
   return (
-    <div className="flex flex-col">
-      {/* <Header /> */}
-      <main className="container py-8">
-        <div className="text-center mb-12">
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Dashboard de Análise de Dados de Pacientes
-          </h1>
-          <p className="mt-3 text-lg text-muted-foreground sm:mt-4">
-            Siga as abas para carregar, visualizar e analisar seus dados.
-          </p>
-        </div>
+    <div className="min-h-screen flex flex-col bg-background">
+      {showWelcomePopup && <WelcomePopup onClose={handleCloseWelcomePopup} />}
+      <Header />
 
+      <main className="flex-1 container py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-lg mx-auto grid-cols-3 mb-8">
-            <TabsTrigger value="upload">1. Upload</TabsTrigger>
-            <TabsTrigger value="viewData" disabled={!processedDataFromBackend}>
-              2. Visualizar Dados
-            </TabsTrigger>
-            <TabsTrigger value="charts" disabled={!showCharts || !processedDataFromBackend}>
-              3. Gráficos
-            </TabsTrigger>
+          <TabsList className="grid w-full max-w-lg mx-auto grid-cols-3 mb-8 bg-pink-100">
+            <TabsTrigger value="upload">Upload</TabsTrigger>
+            <TabsTrigger value="viewData" disabled={!hasData || isLoading}>Análises</TabsTrigger>
+            <TabsTrigger value="charts" disabled={!hasData || isLoading}>Gráficos</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="upload" className="space-y-4">
+          {/* Aba de Upload (sem grandes alterações na renderização) */}
+          <TabsContent value="upload">
             <div className="max-w-md mx-auto text-center mb-8">
               <h2 className="text-2xl font-bold mb-2">Faça o Upload do seu Arquivo</h2>
               <p className="text-muted-foreground">
-                Envie um arquivo CSV para análise. O backend fará o tratamento inicial dos dados.
+                Envie um arquivo CSV para análise. O backend fará o tratamento e a agregação dos dados.
               </p>
             </div>
             <div className="flex justify-center">
+              {/* O FileUploader agora passa o objeto ApiResponse completo para a função de callback */}
               <FileUploader
                 onFileUpload={handleDataReceivedFromBackend}
                 isLoading={isLoading}
@@ -102,61 +140,105 @@ const Index = () => {
                 setUploadError={setUploadError}
               />
             </div>
-            {isLoading && <p className="text-center mt-4">Enviando e processando arquivo...</p>}
-            {uploadError && <p className="text-center mt-4" style={{ color: 'red' }}>Erro no upload: {uploadError}</p>}
+            {isLoading && (
+              <div className="flex justify-center items-center mt-4">
+                <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
+                <p className="text-muted-foreground">Enviando e processando arquivo...</p>
+              </div>
+            )}
+            {uploadError && !isLoading && (
+              <p className="text-center mt-4 text-destructive">{uploadError}</p>
+            )}
           </TabsContent>
 
-          <TabsContent value="viewData" className="space-y-6">
+          {/* Aba de Visualização de Dados (Tabela) */}
+          <TabsContent value="viewData">
             <div className="text-center mb-8">
               <h2 className="text-2xl font-bold mb-2">Revise os Dados Tratados</h2>
               <p className="text-muted-foreground">
-                Os dados abaixo foram tratados pelo backend. Clique no botão para gerar os gráficos.
+                Os dados abaixo foram tratados pelo backend.
               </p>
             </div>
-
-            {processedDataFromBackend && (
+            {hasData ? (
               <>
-                <DataTable data={dataForTable} />
+                <DataTable data={dataTableData} />
                 <div className="flex justify-center mt-8">
-                  <Button size="lg" onClick={handleVisualizeCharts} disabled={showCharts}>
-                    {showCharts ? "Gráficos Gerados" : "Visualizar Estatísticas / Gráficos"}
+                  <Button size="lg" onClick={() => setActiveTab("charts")}>
+                    Visualizar Gráficos
                   </Button>
                 </div>
               </>
+            ) : (
+              <p className="text-center text-muted-foreground">
+                Nenhum dado para visualizar. Por favor, faça o upload de um arquivo.
+              </p>
             )}
           </TabsContent>
 
-          <TabsContent value="charts" className="space-y-6">
+          {/* --- ABA DE GRÁFICOS TOTALMENTE REFEITA --- */}
+          <TabsContent value="charts">
             <div className="text-center mb-8">
               <h2 className="text-2xl font-bold mb-2">Visualização Gráfica</h2>
               <p className="text-muted-foreground">
-                Gráficos baseados nos dados tratados pelo backend.
+                Gráficos baseados nos dados agregados pelo backend.
               </p>
             </div>
-
-            {showCharts && processedDataFromBackend && (
-              <div className="grid gap-8 lg:grid-cols-2"> {/* Layout para múltiplos gráficos */}
-                <TopographyChart rawData={processedDataFromBackend} />
-                <PatientSexChart rawData={processedDataFromBackend} />
-                {/* Adicione mais componentes de gráfico aqui conforme necessário */}
+            {hasData ? (
+              <div className="grid gap-8 md:grid-cols-1 lg:grid-cols-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Mortalidade por Tipo de Câncer</CardTitle>
+                    <CardDescription>Quantidade de óbitos por tipo de tumor (CID).</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <MortalityByTypeChart data={mortalityByTypeData} />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Mortalidade por Faixa Etária</CardTitle>
+                    <CardDescription>Distribuição dos óbitos por idade.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <MortalityByAgeChart data={mortalityByAgeData} />
+                  </CardContent>
+                </Card>
+                <Card className="lg:col-span-2">
+                  <CardHeader>
+                    <CardTitle>Resultado por Tipo de Tratamento</CardTitle>
+                    <CardDescription>Relação entre o tratamento realizado e o desfecho do paciente.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <TreatmentOutcomeChart data={treatmentOutcomeData} />
+                  </CardContent>
+                </Card>
+                <Card className="lg:col-span-2">
+                  <CardHeader>
+                    <CardTitle>Distribuição da Sobrevida Após Diagnóstico</CardTitle>
+                    <CardDescription>Histograma do tempo (em dias) entre o diagnóstico e o óbito.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <SurvivalDaysChart data={survivalData} />
+                  </CardContent>
+                </Card>
               </div>
-            )}
-            {!showCharts && processedDataFromBackend && (
-              <div className="text-center">
-                <p className="text-muted-foreground mb-4">
-                  Clique em "Visualizar Estatísticas / Gráficos" na aba anterior para gerar as visualizações.
-                </p>
-                <Button onClick={() => setActiveTab("viewData")}>
-                  Voltar para Visualizar Dados
-                </Button>
-              </div>
+            ) : (
+              <p className="text-center text-muted-foreground">
+                Nenhum dado carregado para gerar gráficos. Faça upload na aba "Upload".
+              </p>
             )}
           </TabsContent>
         </Tabs>
       </main>
-      <footer className="border-t py-6 mt-12">
-        <div className="container text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} Dashboard de Pacientes
+
+      <footer className="border-t py-6 mt-8">
+        <div className="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row">
+          <p className="text-sm text-muted-foreground text-center md:text-left">
+            OncoVision Dashboard - Análise de Dados de Pacientes.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            © {new Date().getFullYear()} Seu Nome/Organização Aqui
+          </p>
         </div>
       </footer>
     </div>
