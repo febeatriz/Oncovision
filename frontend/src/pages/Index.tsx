@@ -10,47 +10,62 @@ import WelcomePopup from "@/components/WelcomePopup";
 import FileUploader from "@/components/FileUpload";
 import DataTable from "@/components/DataTable";
 
-// --- NOVOS COMPONENTES DE GRÁFICO (crie estes arquivos) ---
+// --- COMPONENTES DE GRÁFICO ---
 import MortalityByTypeChart from "@/components/charts/MortalityByTypeChart";
 import MortalityByAgeChart from "@/components/charts/MortalityByAgeChart";
 import TreatmentOutcomeChart from "@/components/charts/TreatmentOutcomeChart";
 import SurvivalDaysChart from "@/components/charts/SurvivalDaysChart";
 
-// Tipagem para uma linha da tabela
+// --- ADICIONADO: COMPONENTE DA NOVA PÁGINA ---
+import PredictionsPage from "@/components/PredictionsPage";
+
+// --- TIPAGEM ATUALIZADA ---
 interface TableRow {
   id?: number | string;
   [key: string]: any;
 }
 
-// Tipagem para os dados da tabela
 interface DataTableData {
   columns: string[];
   rows: TableRow[];
 }
 
-// --- NOVO: Tipagem para a resposta completa da API ---
+// Tipagem para a comparação do modelo
+interface PredictionResult {
+  gabarito: string;
+  previsão: string;
+}
+
+// Tipagem para a resposta completa da API
 interface ApiResponse {
   base_tratada: TableRow[];
   grafico_tipo_mortalidade: any[];
   grafico_idade_mortalidade: any[];
   grafico_tratamento_resultado: any[];
   grafico_sobrevida_diagnostico: any[];
+  // --- ADICIONADO ---
+  result_test: PredictionResult[];
+  accuracy: number;
 }
 
 const Index = () => {
-  // --- ESTADOS ALTERADOS ---
+  // --- ESTADOS ---
   const [dataTableData, setDataTableData] = useState<DataTableData>({ columns: [], rows: [] });
   const [mortalityByTypeData, setMortalityByTypeData] = useState<any[] | null>(null);
   const [mortalityByAgeData, setMortalityByAgeData] = useState<any[] | null>(null);
   const [treatmentOutcomeData, setTreatmentOutcomeData] = useState<any[] | null>(null);
   const [survivalData, setSurvivalData] = useState<any[] | null>(null);
 
+  // --- ADICIONADOS: ESTADOS PARA PREVISÕES ---
+  const [predictionResults, setPredictionResults] = useState<PredictionResult[] | null>(null);
+  const [modelAccuracy, setModelAccuracy] = useState<number | null>(null);
+
   const [isLoading, setIsLoading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("upload");
   const [showWelcomePopup, setShowWelcomePopup] = useState(true);
 
-  // Efeito para o pop-up de boas-vindas (sem alterações)
+  // Efeito para o pop-up de boas-vindas
   useEffect(() => {
     const welcomeShown = localStorage.getItem('welcomeDashboardShown');
     if (welcomeShown) {
@@ -63,7 +78,7 @@ const Index = () => {
     localStorage.setItem('welcomeDashboardShown', 'true');
   };
 
-  // --- LÓGICA ALTERADA PARA LIDAR COM A NOVA RESPOSTA DA API ---
+  // --- LÓGICA ATUALIZADA PARA LIDAR COM A NOVA RESPOSTA DA API ---
   const handleDataReceivedFromBackend = (apiResponse: ApiResponse | null) => {
     setIsLoading(false);
 
@@ -73,7 +88,10 @@ const Index = () => {
         grafico_tipo_mortalidade,
         grafico_idade_mortalidade,
         grafico_tratamento_resultado,
-        grafico_sobrevida_diagnostico
+        grafico_sobrevida_diagnostico,
+        // --- ADICIONADO ---
+        result_test,
+        accuracy,
       } = apiResponse;
 
       // 1. Processa dados para a Tabela
@@ -90,6 +108,10 @@ const Index = () => {
       setTreatmentOutcomeData(grafico_tratamento_resultado);
       setSurvivalData(grafico_sobrevida_diagnostico);
 
+      // 3. --- ADICIONADO: Armazena dados para as Previsões ---
+      setPredictionResults(result_test);
+      setModelAccuracy(accuracy);
+
       setUploadError(null);
       setActiveTab("viewData");
       toast.success("Arquivo processado e dados recebidos com sucesso!");
@@ -100,6 +122,10 @@ const Index = () => {
       setMortalityByAgeData(null);
       setTreatmentOutcomeData(null);
       setSurvivalData(null);
+      // --- ADICIONADO ---
+      setPredictionResults(null);
+      setModelAccuracy(null);
+
       if (uploadError) {
         toast.error(uploadError || "Falha ao processar o arquivo.");
       } else {
@@ -117,13 +143,16 @@ const Index = () => {
 
       <main className="flex-1 container py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-lg mx-auto grid-cols-3 mb-8 bg-pink-100">
+          {/* --- ALTERADO PARA 4 COLUNAS --- */}
+          <TabsList className="grid w-full max-w-lg mx-auto grid-cols-4 mb-8 bg-pink-100">
             <TabsTrigger value="upload">Upload</TabsTrigger>
             <TabsTrigger value="viewData" disabled={!hasData || isLoading}>Análises</TabsTrigger>
             <TabsTrigger value="charts" disabled={!hasData || isLoading}>Gráficos</TabsTrigger>
+            {/* --- ADICIONADO: BOTÃO DA NOVA ABA --- */}
+            <TabsTrigger value="predictions" disabled={!hasData || isLoading}>Previsões</TabsTrigger>
           </TabsList>
 
-          {/* Aba de Upload (sem grandes alterações na renderização) */}
+          {/* Aba de Upload */}
           <TabsContent value="upload">
             <div className="max-w-md mx-auto text-center mb-8">
               <h2 className="text-2xl font-bold mb-2">Faça o Upload do seu Arquivo</h2>
@@ -132,7 +161,6 @@ const Index = () => {
               </p>
             </div>
             <div className="flex justify-center">
-              {/* O FileUploader agora passa o objeto ApiResponse completo para a função de callback */}
               <FileUploader
                 onFileUpload={handleDataReceivedFromBackend}
                 isLoading={isLoading}
@@ -175,7 +203,7 @@ const Index = () => {
             )}
           </TabsContent>
 
-          {/* --- ABA DE GRÁFICOS TOTALMENTE REFEITA --- */}
+          {/* Aba de Gráficos */}
           <TabsContent value="charts">
             <div className="text-center mb-8">
               <h2 className="text-2xl font-bold mb-2">Visualização Gráfica</h2>
@@ -225,6 +253,20 @@ const Index = () => {
             ) : (
               <p className="text-center text-muted-foreground">
                 Nenhum dado carregado para gerar gráficos. Faça upload na aba "Upload".
+              </p>
+            )}
+          </TabsContent>
+
+          {/* --- ADICIONADO: CONTEÚDO DA NOVA ABA DE PREVISÕES --- */}
+          <TabsContent value="predictions">
+            {hasData ? (
+              <PredictionsPage
+                results={predictionResults}
+                accuracy={modelAccuracy}
+              />
+            ) : (
+              <p className="text-center text-muted-foreground">
+                Nenhum dado carregado para gerar previsões. Faça upload na aba "Upload".
               </p>
             )}
           </TabsContent>
