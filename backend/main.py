@@ -3,6 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
 from io import BytesIO
 import logging
+from sklearn.model_selection import train_test_split
+from catboost import CatBoostClassifier
+from sklearn.metrics import accuracy_score
 
 # Configuração de logging para ver erros no terminal
 logging.basicConfig(level=logging.INFO)
@@ -113,6 +116,7 @@ async def upload_csv(file: UploadFile = File(...)):
         df_faixa_morte = df_obito_cancer["faixaetar"].value_counts().reset_index()
         df_faixa_morte.columns = ["Idade", "quantidade"]
 
+
         df_tratamento_raw = df_tratada[df_tratada["ultinfo"].isin(["OBITO POR CANCER", "VIVO, COM CANCER", "VIVO, SOE"])]
         if not df_tratamento_raw.empty:
             df_tratamento = df_tratamento_raw.groupby(["tratamento", "ultinfo"]).size().unstack(fill_value=0)
@@ -133,12 +137,39 @@ async def upload_csv(file: UploadFile = File(...)):
         # Converte o DataFrame principal para JSON, tratando valores nulos corretamente
         base_tratada_json = df_tratada.astype(object).where(pd.notnull(df_tratada), None).to_dict(orient="records")
 
+        #Catboost e accuracy
+        X = df_PI[[  # selecione suas colunas
+            'sexo','desctopo','tratamento','trathosp','tratfapos',
+            'cirurgia','radio','tmo','outros','nenhumant','nenhumapos','outroapos',
+            'consdiag','tratcons','diagtrat','laterali','perdaseg',
+            'recnenhum','reclocal','recregio','recdist','rec01','rec02','rec03','rec04']]
+        y = df_PI['ultinfo']  
+
+        cat_features = X.select_dtypes(include=['object', 'category']).columns.tolist()
+
+        # Split e flatten
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y)
+        y_train = y_train.values.ravel()
+        y_test  = y_test.values.ravel()
+
+        model = CatBoostClassifier(border_count=64, depth=6,iterations=100, l2_leaf_reg=5,learning_rate=0.1, verbose=50)
+        model.fit(X_train, y_train,cat_features=cat_features,eval_set=(X_test, y_test),use_best_model=True)
+        y_pred = model.predict(X_test).ravel()
+
+        mapping = get_dicionario_mapeamento().get('ultinfo', {})
+        df_comp = pd.DataFrame({'gabarito': [mapping.get(code, code) for code in y_test],'previsão': [mapping.get(code, code) for code in y_pred]})
+        result = df_comp.to_dict(orient='records')
+
+        accuracy = accuracy_score(y_test, y_pred)
+
         return {
             "base_tratada": base_tratada_json,
             "grafico_tipo_mortalidade": df_obito_por_tipo.to_dict(orient="records"),
             "grafico_idade_mortalidade": df_faixa_morte.to_dict(orient="records"),
             "grafico_tratamento_resultado": df_tratamento_resultado.to_dict(orient="records"),
-            "grafico_sobrevida_diagnostico": df_sobrevida_json.to_dict(orient="records")
+            "grafico_sobrevida_diagnostico": df_sobrevida_json.to_dict(orient="records"),
+            'result_test': result,
+            "accuracy": accuracy
         }
 
     except Exception as e:
