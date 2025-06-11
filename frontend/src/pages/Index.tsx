@@ -15,6 +15,8 @@ import MortalityByTypeChart from "@/components/charts/MortalityByTypeChart";
 import MortalityByAgeChart from "@/components/charts/MortalityByAgeChart";
 import TreatmentOutcomeChart from "@/components/charts/TreatmentOutcomeChart";
 import SurvivalDaysChart from "@/components/charts/SurvivalDaysChart";
+import GeneralAgeChart from "@/components/charts/GeneralAgeChart";
+import GeneralTreatmentsChart from "@/components/charts/GeneralTreatmentsChart";
 
 // --- ADICIONADO: COMPONENTE DA NOVA PÁGINA ---
 import PredictionsPage from "@/components/PredictionsPage";
@@ -43,6 +45,8 @@ interface ApiResponse {
   grafico_idade_mortalidade: any[];
   grafico_tratamento_resultado: any[];
   grafico_sobrevida_diagnostico: any[];
+  grafico_faixa_geral: any[];
+  grafico_tratamentos_geral: any[];
   // --- ADICIONADO ---
   result_test: PredictionResult[];
   accuracy: number;
@@ -55,6 +59,8 @@ const Index = () => {
   const [mortalityByAgeData, setMortalityByAgeData] = useState<any[] | null>(null);
   const [treatmentOutcomeData, setTreatmentOutcomeData] = useState<any[] | null>(null);
   const [survivalData, setSurvivalData] = useState<any[] | null>(null);
+  const [generalAgeData, setGeneralAgeData] = useState<any[] | null>(null);
+  const [generalTreatmentsData, setGeneralTreatmentsData] = useState<any[] | null>(null);
 
   // --- ADICIONADOS: ESTADOS PARA PREVISÕES ---
   const [predictionResults, setPredictionResults] = useState<PredictionResult[] | null>(null);
@@ -89,6 +95,8 @@ const Index = () => {
         grafico_idade_mortalidade,
         grafico_tratamento_resultado,
         grafico_sobrevida_diagnostico,
+        grafico_faixa_geral,
+        grafico_tratamentos_geral,
         // --- ADICIONADO ---
         result_test,
         accuracy,
@@ -107,6 +115,8 @@ const Index = () => {
       setMortalityByAgeData(grafico_idade_mortalidade);
       setTreatmentOutcomeData(grafico_tratamento_resultado);
       setSurvivalData(grafico_sobrevida_diagnostico);
+      setGeneralAgeData(grafico_faixa_geral);
+      setGeneralTreatmentsData(grafico_tratamentos_geral);
 
       // 3. --- ADICIONADO: Armazena dados para as Previsões ---
       setPredictionResults(result_test);
@@ -122,6 +132,8 @@ const Index = () => {
       setMortalityByAgeData(null);
       setTreatmentOutcomeData(null);
       setSurvivalData(null);
+      setGeneralAgeData(null);
+      setGeneralTreatmentsData(null);
       // --- ADICIONADO ---
       setPredictionResults(null);
       setModelAccuracy(null);
@@ -238,6 +250,24 @@ const Index = () => {
                   </CardHeader>
                   <CardContent>
                     <TreatmentOutcomeChart data={treatmentOutcomeData} />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Casos por Faixa Etária (Geral)</CardTitle>
+                    <CardDescription>Distribuição de todos os casos por idade.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <GeneralAgeChart data={generalAgeData} />
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Tratamentos Mais Utilizados (Geral)</CardTitle>
+                    <CardDescription>Frequência dos tipos de tratamento aplicados.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <GeneralTreatmentsChart data={generalTreatmentsData} />
                   </CardContent>
                 </Card>
                 <Card className="lg:col-span-2">

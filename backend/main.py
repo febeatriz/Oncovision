@@ -7,20 +7,17 @@ from sklearn.model_selection import train_test_split
 from catboost import CatBoostClassifier
 from sklearn.metrics import accuracy_score
 
-# Configuração de logging para ver erros no terminal
+# Configuração de logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-# --- Configuração de CORS flexível ---
+# Configuração de CORS
 origins = [
-    "http://localhost:8080",      # Porta comum para projetos React/Vue
-    "http://127.0.0.1:8080",
-    "http://localhost:5173",      # Porta padrão do Vite
-    "http://127.0.0.1:5173",
-    "http://localhost:3000",      # Porta padrão do Create React App
-    "http://127.0.0.1:3000",
+    "http://localhost:8080", "http://127.0.0.1:8080",
+    "http://localhost:5173", "http://127.0.0.1:5173",
+    "http://localhost:3000", "http://127.0.0.1:3000",
 ]
 
 app.add_middleware(
@@ -31,8 +28,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Dicionários e Funções de Tratamento (Organizados) ---
-
+# Dicionários e Funções de Tratamento
 def get_dicionario_mapeamento():
     """Retorna o dicionário completo de mapeamentos para manter o código principal limpo."""
     simNao = {1: "SIM", 0: "NÃO"}
@@ -68,19 +64,32 @@ def get_dicionario_mapeamento():
 def trataBase(df: pd.DataFrame) -> pd.DataFrame:
     """Aplica todas as transformações e limpezas necessárias no DataFrame."""
     df.dropna(how='all', inplace=True)
+    
+    # Remove espaços em branco no início e fim de todas as colunas de texto
+    for col in df.select_dtypes(include=['object']).columns:
+        df[col] = df[col].str.strip()
+
     colunas_a_remover = ["ibge", "t", "n", "m", "pt", "pn", "pm", "s", "g", "meta01", "meta02", "meta03", "outracla", "cici", "cicigrup", "cicisubgru", "rec01", "rec02", "rec03", "rec04"]
     colunas_existentes = [col for col in colunas_a_remover if col in df.columns]
     df = df.drop(columns=colunas_existentes)
 
     dicionarioCompleto = get_dicionario_mapeamento()
+    
+    # Lógica de mapeamento corrigida para lidar com chaves numéricas e de texto
     for coluna, mapeamento in dicionarioCompleto.items():
         if coluna in df.columns:
+            # Se as chaves do mapeamento forem números, converte a coluna para numérico primeiro
+            if mapeamento and isinstance(next(iter(mapeamento.keys())), int):
+                df[coluna] = pd.to_numeric(df[coluna], errors='coerce')
+            
+            # Aplica o mapeamento
             df[coluna] = df[coluna].replace(mapeamento)
     
     date_columns = ["dtconsult", "dtdiag", "dtultinfo", "dtrecidiva", "dttrat"]
     for col in date_columns:
         if col in df.columns:
             df[col] = pd.to_datetime(df[col], errors='coerce', dayfirst=True)
+            
     return df
 
 @app.post("/upload_csv/")
@@ -90,15 +99,10 @@ async def upload_csv(file: UploadFile = File(...)):
 
     try:
         conteudo = await file.read()
-        # Tenta detectar o separador (vírgula ou ponto e vírgula)
-        try:
-            df_PI = pd.read_csv(BytesIO(conteudo), sep=',', encoding='utf-8-sig')
-            if df_PI.shape[1] < 2: # Se tem menos de 2 colunas, provavelmente o separador está errado
-                logger.info("Separador por vírgula não funcionou, tentando ponto e vírgula.")
-                df_PI = pd.read_csv(BytesIO(conteudo), sep=';', encoding='utf-8-sig')
-        except Exception:
-            logger.info("Primeira tentativa de parse falhou, tentando ponto e vírgula.")
-            df_PI = pd.read_csv(BytesIO(conteudo), sep=';', encoding='utf-8-sig')
+        df_PI = pd.read_csv(BytesIO(conteudo), sep=',', encoding='utf-8-sig', low_memory=False)
+        if df_PI.shape[1] < 2: 
+            logger.info("Separador por vírgula não funcionou, tentando ponto e vírgula.")
+            df_PI = pd.read_csv(BytesIO(conteudo), sep=';', encoding='utf-8-sig', low_memory=False)
     
     except Exception as e:
         logger.error(f"Erro de parsing no CSV: {e}")
@@ -107,7 +111,7 @@ async def upload_csv(file: UploadFile = File(...)):
     try:
         df_tratada = trataBase(df_PI.copy())
 
-        # Análises para os gráficos
+        # Análises para os gráficos existentes
         df_obito_cancer = df_tratada[df_tratada["ultinfo"] == "OBITO POR CANCER"].copy()
 
         df_obito_por_tipo = df_obito_cancer['descido'].value_counts().reset_index()
@@ -115,7 +119,6 @@ async def upload_csv(file: UploadFile = File(...)):
 
         df_faixa_morte = df_obito_cancer["faixaetar"].value_counts().reset_index()
         df_faixa_morte.columns = ["Idade", "quantidade"]
-
 
         df_tratamento_raw = df_tratada[df_tratada["ultinfo"].isin(["OBITO POR CANCER", "VIVO, COM CANCER", "VIVO, SOE"])]
         if not df_tratamento_raw.empty:
@@ -127,39 +130,57 @@ async def upload_csv(file: UploadFile = File(...)):
         else:
             df_tratamento_resultado = pd.DataFrame(columns=['tratamento'])
 
-
         df_sobrevida = df_obito_cancer[df_obito_cancer["dtdiag"].notna() & df_obito_cancer["dtultinfo"].notna()].copy()
         if not df_sobrevida.empty:
             df_sobrevida["dias_sobrevida"] = (df_sobrevida["dtultinfo"] - df_sobrevida["dtdiag"]).dt.days
             df_sobrevida = df_sobrevida[df_sobrevida["dias_sobrevida"] >= 0]
         df_sobrevida_json = df_sobrevida[["dias_sobrevida"]]
+        
+        # Análises para os novos gráficos
+        df_faixa_geral = df_tratada["faixaetar"].value_counts().reset_index()
+        df_faixa_geral.columns = ["Idade", "quantidade"]
+        
+        # --- CORREÇÃO DO BUG APLICADA AQUI ---
+        df_tratamentos_geral = df_tratada["tratamento"].value_counts().reset_index()
+        df_tratamentos_geral.columns = ["tratamento", "quantidade"]
 
-        # Converte o DataFrame principal para JSON, tratando valores nulos corretamente
         base_tratada_json = df_tratada.astype(object).where(pd.notnull(df_tratada), None).to_dict(orient="records")
-
-        #Catboost e accuracy
-        X = df_PI[[  # selecione suas colunas
+        
+        # Lógica de Machine Learning...
+        features_para_modelo = [
             'sexo','desctopo','tratamento','trathosp','tratfapos',
             'cirurgia','radio','tmo','outros','nenhumant','nenhumapos','outroapos',
             'consdiag','tratcons','diagtrat','laterali','perdaseg',
-            'recnenhum','reclocal','recregio','recdist','rec01','rec02','rec03','rec04']]
-        y = df_PI['ultinfo']  
+            'recnenhum','reclocal','recregio','recdist','rec01','rec02','rec03','rec04'
+        ]
+        
+        features_existentes = [f for f in features_para_modelo if f in df_PI.columns]
+        X = df_PI[features_existentes].copy()
+        y = df_PI['ultinfo'].copy()
 
         cat_features = X.select_dtypes(include=['object', 'category']).columns.tolist()
+        for col in X.columns:
+            if col not in cat_features:
+                 X[col] = pd.to_numeric(X[col], errors='coerce').fillna(0)
+        X = X.fillna('Missing')
+        
+        y = pd.to_numeric(y, errors='coerce').dropna()
+        X = X.loc[y.index]
 
-        # Split e flatten
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y)
-        y_train = y_train.values.ravel()
-        y_test  = y_test.values.ravel()
+        if y.nunique() < 2:
+            raise HTTPException(status_code=400, detail="A coluna alvo 'ultinfo' tem menos de duas classes.")
 
-        model = CatBoostClassifier(border_count=64, depth=6,iterations=100, l2_leaf_reg=5,learning_rate=0.1, verbose=50)
-        model.fit(X_train, y_train,cat_features=cat_features,eval_set=(X_test, y_test),use_best_model=True)
-        y_pred = model.predict(X_test).ravel()
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)
+        model = CatBoostClassifier(iterations=100, learning_rate=0.1, depth=6, verbose=0, random_state=42)
+        model.fit(X_train, y_train, cat_features=cat_features)
+        y_pred = model.predict(X_test)
 
         mapping = get_dicionario_mapeamento().get('ultinfo', {})
-        df_comp = pd.DataFrame({'gabarito': [mapping.get(code, code) for code in y_test],'previsão': [mapping.get(code, code) for code in y_pred]})
+        df_comp = pd.DataFrame({
+            'gabarito': [mapping.get(int(code), code) for code in y_test.values.ravel()],
+            'previsão': [mapping.get(int(code), code) for code in y_pred.ravel()]
+        })
         result = df_comp.to_dict(orient='records')
-
         accuracy = accuracy_score(y_test, y_pred)
 
         return {
@@ -169,7 +190,9 @@ async def upload_csv(file: UploadFile = File(...)):
             "grafico_tratamento_resultado": df_tratamento_resultado.to_dict(orient="records"),
             "grafico_sobrevida_diagnostico": df_sobrevida_json.to_dict(orient="records"),
             'result_test': result,
-            "accuracy": accuracy
+            "accuracy": accuracy,
+            "grafico_faixa_geral": df_faixa_geral.to_dict(orient="records"),
+            "grafico_tratamentos_geral": df_tratamentos_geral.to_dict(orient="records"),
         }
 
     except Exception as e:
