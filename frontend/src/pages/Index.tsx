@@ -18,7 +18,6 @@ import SurvivalDaysChart from "@/components/charts/SurvivalDaysChart";
 import GeneralAgeChart from "@/components/charts/GeneralAgeChart";
 import GeneralTreatmentsChart from "@/components/charts/GeneralTreatmentsChart";
 
-// --- ADICIONADO: COMPONENTE DA NOVA PÁGINA ---
 import PredictionsPage from "@/components/PredictionsPage";
 
 // --- TIPAGEM ATUALIZADA ---
@@ -47,13 +46,12 @@ interface ApiResponse {
   grafico_sobrevida_diagnostico: any[];
   grafico_faixa_geral: any[];
   grafico_tratamentos_geral: any[];
-  // --- ADICIONADO ---
+
   result_test: PredictionResult[];
   accuracy: number;
 }
 
 const Index = () => {
-  // --- ESTADOS ---
   const [dataTableData, setDataTableData] = useState<DataTableData>({ columns: [], rows: [] });
   const [mortalityByTypeData, setMortalityByTypeData] = useState<any[] | null>(null);
   const [mortalityByAgeData, setMortalityByAgeData] = useState<any[] | null>(null);
@@ -62,7 +60,6 @@ const Index = () => {
   const [generalAgeData, setGeneralAgeData] = useState<any[] | null>(null);
   const [generalTreatmentsData, setGeneralTreatmentsData] = useState<any[] | null>(null);
 
-  // --- ADICIONADOS: ESTADOS PARA PREVISÕES ---
   const [predictionResults, setPredictionResults] = useState<PredictionResult[] | null>(null);
   const [modelAccuracy, setModelAccuracy] = useState<number | null>(null);
 
@@ -71,7 +68,6 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState("upload");
   const [showWelcomePopup, setShowWelcomePopup] = useState(true);
 
-  // Efeito para o pop-up de boas-vindas
   useEffect(() => {
     const welcomeShown = localStorage.getItem('welcomeDashboardShown');
     if (welcomeShown) {
@@ -84,7 +80,6 @@ const Index = () => {
     localStorage.setItem('welcomeDashboardShown', 'true');
   };
 
-  // --- LÓGICA ATUALIZADA PARA LIDAR COM A NOVA RESPOSTA DA API ---
   const handleDataReceivedFromBackend = (apiResponse: ApiResponse | null) => {
     setIsLoading(false);
 
@@ -118,7 +113,6 @@ const Index = () => {
       setGeneralAgeData(grafico_faixa_geral);
       setGeneralTreatmentsData(grafico_tratamentos_geral);
 
-      // 3. --- ADICIONADO: Armazena dados para as Previsões ---
       setPredictionResults(result_test);
       setModelAccuracy(accuracy);
 
@@ -134,7 +128,7 @@ const Index = () => {
       setSurvivalData(null);
       setGeneralAgeData(null);
       setGeneralTreatmentsData(null);
-      // --- ADICIONADO ---
+
       setPredictionResults(null);
       setModelAccuracy(null);
 
@@ -252,6 +246,15 @@ const Index = () => {
                     <TreatmentOutcomeChart data={treatmentOutcomeData} />
                   </CardContent>
                 </Card>
+                <Card className="lg:col-span-2">
+                  <CardHeader>
+                    <CardTitle>Tratamentos Mais Utilizados (Geral)</CardTitle>
+                    <CardDescription>Frequência dos tipos de tratamento aplicados.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex justify-center">
+                    <GeneralTreatmentsChart data={generalTreatmentsData} />
+                  </CardContent>
+                </Card>
                 <Card>
                   <CardHeader>
                     <CardTitle>Casos por Faixa Etária (Geral)</CardTitle>
@@ -261,16 +264,7 @@ const Index = () => {
                     <GeneralAgeChart data={generalAgeData} />
                   </CardContent>
                 </Card>
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Tratamentos Mais Utilizados (Geral)</CardTitle>
-                    <CardDescription>Frequência dos tipos de tratamento aplicados.</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <GeneralTreatmentsChart data={generalTreatmentsData} />
-                  </CardContent>
-                </Card>
-                <Card className="lg:col-span-2">
+                <Card >
                   <CardHeader>
                     <CardTitle>Distribuição da Sobrevida Após Diagnóstico</CardTitle>
                     <CardDescription>Histograma do tempo (em dias) entre o diagnóstico e o óbito.</CardDescription>
@@ -287,7 +281,6 @@ const Index = () => {
             )}
           </TabsContent>
 
-          {/* --- ADICIONADO: CONTEÚDO DA NOVA ABA DE PREVISÕES --- */}
           <TabsContent value="predictions">
             {hasData ? (
               <PredictionsPage
@@ -309,7 +302,7 @@ const Index = () => {
             OncoVision Dashboard - Análise de Dados de Pacientes.
           </p>
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} Seu Nome/Organização Aqui
+            © {new Date().getFullYear()} OncoVision
           </p>
         </div>
       </footer>

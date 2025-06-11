@@ -9,7 +9,6 @@ const SurvivalDaysChart = ({ data }: ChartProps) => {
         return <p className="text-center text-muted-foreground">Dados não disponíveis para este gráfico.</p>;
     }
 
-    // Cria um histograma agrupando os dias em faixas
     const BUCKET_SIZE = 365; // Agrupar por ano
     const buckets = data.reduce((acc, item) => {
         const bucketIndex = Math.floor(item.dias_sobrevida / BUCKET_SIZE);

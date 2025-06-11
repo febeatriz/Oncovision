@@ -10,14 +10,27 @@ const MortalityByTypeChart = ({ data }: ChartProps) => {
     }
 
     return (
-        <div style={{ width: '100%', height: 300 }}>
+        <div style={{ width: '100%', height: 350 }}> 
             <ResponsiveContainer>
-                <BarChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                <BarChart 
+                    data={data} 
+                    margin={{ top: 5, right: 20, left: 10, bottom: 100 }}
+                >
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="tipo_cancer" angle={-45} textAnchor="end" height={80} interval={0} fontSize={12} />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
+                    
+                    <XAxis 
+                        dataKey="tipo_cancer" 
+                        angle={-45} 
+                        textAnchor="end" 
+                        height={90} 
+                        interval={0} 
+                        fontSize={12} 
+                    />
+                    
+                    <YAxis allowDecimals={false} />
+                    <Tooltip />                    
+                    <Legend verticalAlign="top" />
+                    
                     <Bar dataKey="quantidade" fill="#d00285" name="Nº de Óbitos" />
                 </BarChart>
             </ResponsiveContainer>
